@@ -1,3 +1,8 @@
+// code that allows an arduino controlled robot to follow a black line using sensors on its bottom. the robot will stop once lifted
+
+
+
+
 #include <IRremote.hpp>  
 
 const int IR_RECEIVE_PIN = 9; // Define the pin connected to the IR receiver   
