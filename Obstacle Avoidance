@@ -1,0 +1,331 @@
+#include <Servo.h> 
+
+#include <IRremote.hpp>  
+
+const int IR_RECEIVE_PIN = 9; // Define the pin connected to the IR receiver   
+
+const int pwma = 5;   // keywords  
+
+const int pwmb = 6; 
+
+const int ain1 = 7; 
+
+const int bin1 = 8; 
+
+const int stb = 3; 
+
+const int sensright = A0; 
+
+const int sensmid = A1; 
+
+const int sensleft = A2; 
+
+const int trigPin = 13; 
+
+const int echoPin = 12; 
+
+const int servo = 10; 
+
+Servo ultrasonicServo; 
+
+int servoval; 
+
+float duration, distance; 
+
+const int obstacleThreshold = 25; // Distance in cm to consider as an obstacle 
+
+  
+
+void forward(int Speed) {  // makes rbt go forward 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed*0.85); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  reverse(int Speed) {     // makes rbt go backwards 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void left(int Speed) {    // makes rbt spin left 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void right(int Speed) {     // makes rbt spin right 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void forwardleft(int Speed) {   // makes rbt turn left  
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,0); 
+
+} 
+
+  
+
+void forwardright(int Speed) {   // makes rbt turn right 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,0); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  reverseleft(int Speed) {    // makes rbt turn left in reverse 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,0); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  reverseright(int Speed) {   // makes rbt turn right in reverse 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,0); 
+
+} 
+
+  
+
+void Stop() {        // stops rbt in place 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,0); 
+
+analogWrite(pwmb,0); 
+
+} 
+
+void setup() { 
+
+  // put your setup code here, to run once: 
+
+pinMode(stb, OUTPUT); 
+
+pinMode(pwma, OUTPUT); 
+
+pinMode(ain1, OUTPUT); 
+
+pinMode(pwmb, OUTPUT); 
+
+pinMode(bin1, OUTPUT); 
+
+digitalWrite(stb, 1); 
+
+Serial.begin (9600);         //set up arduino pins 
+
+pinMode(trigPin, OUTPUT);    //ultrasonic sensor has an input and an outpu 
+
+pinMode(echoPin, INPUT); 
+
+ultrasonicServo.attach (10); 
+
+ultrasonicServo.write(90); 
+
+delay(500); 
+
+} 
+
+  
+
+void loop() { 
+
+  // put your main code here, to run repeatedly: 
+
+  
+
+  avoidObstacle(); 
+
+  delay(100); // Small delay to stabilize sensor readings 
+
+} 
+
+  
+
+// Function to get the distance from the ultrasonic sensor 
+
+long getDistance() { 
+
+  digitalWrite(trigPin, LOW); 
+
+  delayMicroseconds(2); 
+
+  digitalWrite(trigPin, HIGH); 
+
+  delayMicroseconds(10); 
+
+  digitalWrite(trigPin, LOW); 
+
+  
+
+  long duration = pulseIn(echoPin, HIGH); 
+
+  long distance = (duration / 2) / 29.1; // Convert the duration to distance in cm 
+
+  return distance; 
+
+} 
+
+  
+
+// Function to handle obstacle avoidance 
+
+void avoidObstacle() { 
+
+  // Step 1: Check the front sensor (ultrasonic facing forward) 
+
+  long frontDistance = getDistance(); 
+
+  
+
+  if (frontDistance > obstacleThreshold) { 
+
+    // If no obstacle in front, move forward 
+
+    forward(90); 
+
+  } else { 
+
+    Stop(); // Stop if obstacle detected 
+
+  
+
+    // Step 2: Rotate the ultrasonic sensor 180 degrees (to detect the sides) 
+
+    ultrasonicServo.write(180); // Turn sensor to 180 degrees 
+
+    delay(500);  // Wait for the servo to move 
+
+  
+
+    long sideDistance = getDistance(); // Check the distance after the turn 
+
+  
+
+    if (sideDistance > obstacleThreshold) { 
+
+      // If there is space on the side, turn the robot left and move forward 
+
+      left(65); 
+
+      delay(1000); 
+
+      forward(90); 
+
+    } else { 
+
+      // Step 3: If obstacle is still detected, rotate the sensor to 0 degrees 
+
+      ultrasonicServo.write(0);  // Turn sensor to 0 degrees 
+
+      delay(500); 
+
+  
+
+      sideDistance = getDistance(); // Check the distance after the turn 
+
+  
+
+      if (sideDistance > obstacleThreshold) { 
+
+        // If space detected, turn right and move forward 
+
+        right(65); 
+
+        delay(1000); 
+
+        forward(50); 
+
+      } else { 
+
+        // If obstacle is detected in both directions, reverse and do a 180-degree turn 
+
+        reverse(85); 
+
+        delay(1000);  // Move backward for 1 second 
+
+        left(117);  // A 180-degree turn (left twice) 
+
+        delay(1000); 
+
+        forward(90); // Move forward after turn 
+
+      } 
+
+    } 
+
+  } 
+
+  
+
+  // Once the robot starts moving forward again, reset the servo to 90 degrees (straight ahead) 
+
+  ultrasonicServo.write(90); 
+
+} 
+
+  
