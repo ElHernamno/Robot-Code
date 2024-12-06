@@ -1,3 +1,8 @@
+// code that allows a robot using an ultrasonic sensor attached to a servo motor to avoid obstacles when sensed.
+
+
+
+
 #include <Servo.h> 
 
 #include <IRremote.hpp>  
