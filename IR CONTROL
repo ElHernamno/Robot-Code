@@ -1,3 +1,12 @@
+// this is a code that allows the control of a robot using a connection between an IR remote and the infrared LED on an arduino
+
+
+
+
+
+
+
+
 #include <IRremote.hpp>  
 
   
