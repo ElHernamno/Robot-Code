@@ -1,0 +1,218 @@
+#include <IRremote.hpp>  
+
+const int IR_RECEIVE_PIN = 9; // Define the pin connected to the IR receiver   
+
+const int pwma = 5;   // keywords  
+
+const int pwmb = 6; 
+
+const int ain1 = 7; 
+
+const int bin1 = 8; 
+
+const int stb = 3; 
+
+const int sensright = A0;    // analog input pins 
+
+const int sensmid = A1; 
+
+const int sensleft = A2; 
+
+  
+
+  
+
+  
+
+  
+
+void forward(int Speed) {  // makes rbt go forward 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed*0.85); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  reverse(int Speed) {     // makes rbt go backwards 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void left(int Speed) {    // makes rbt spin left 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void right(int Speed) {     // makes rbt spin right 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void forwardleft(int Speed) {   // makes rbt turn left  
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,0); 
+
+} 
+
+  
+
+void forwardright(int Speed) {   // makes rbt turn right 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,0); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  reverseleft(int Speed) {    // makes rbt turn left in reverse 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,0); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  reverseright(int Speed) {   // makes rbt turn right in reverse 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,0); 
+
+} 
+
+  
+
+void Stop() {        // stops rbt in place 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,0); 
+
+analogWrite(pwmb,0); 
+
+} 
+
+  
+
+
+  
+
+void setup() { 
+
+  // put your setup code here, to run once: 
+
+pinMode(stb, OUTPUT); 
+
+pinMode(pwma, OUTPUT); 
+
+pinMode(ain1, OUTPUT); 
+
+pinMode(pwmb, OUTPUT); 
+
+pinMode(bin1, OUTPUT); 
+
+digitalWrite(stb, 1); 
+
+} 
+
+  
+
+void loop() { 
+
+  // put your main code here, to run repeatedly:  
+
+  int vL = analogRead(sensleft);      
+
+  int vM = analogRead(sensmid); 
+
+  int vR = analogRead(sensright); 
+
+  
+
+  
+
+  if ((vL > 850) && (vM > 850) && (vR > 850)){ // this if statement checks if the analogRead value is greater than 850. if so, then the robot stops 
+
+  Stop(); 
+
+  } else if ((vL >= 100) && (vL <= 850)) {     // makes the robot turn left 
+
+  forwardleft(55);  
+
+  } else if ((vR >= 100) && (vR <= 830)) {     // makes the robot turn right 
+
+  forwardright(55); 
+
+  } else if ((vM >= 100) && (vM <= 830)) {     // makes the robot go forward 
+
+  forward(80); 
+
+  } else if ((vL < 600) && (vM < 600) && (vR < 600)){    // makes the robot spin if it can't detect a black line strip on the ground 
+
+    right(75); 
+
+  
+
+  } 
+
+  
+
+} 
