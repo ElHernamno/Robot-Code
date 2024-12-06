@@ -2,17 +2,6 @@
 
   
 
-   
-
-  
-
-   
-
-  
-
-   
-
-  
 
 const int IR_RECEIVE_PIN = 9; // Define the pin connected to the IR receiver   
 
