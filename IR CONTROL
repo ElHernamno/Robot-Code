@@ -7,15 +7,8 @@ const int IR_RECEIVE_PIN = 9; // Define the pin connected to the IR receiver
 
   
 
-   
-
-  
 
 const int pwma = 5;   // keywords  
-
-  
-
-   
 
   
 
@@ -23,47 +16,16 @@ const int pwmb = 6;
 
   
 
-   
-
-  
-
 const int ain1 = 7;  
-
-  
-
-   
-
-  
 
 const int bin1 = 8;  
 
-  
-
-   
-
-  
-
 const int stb = 3;  
 
-  
-
-   
-
-  
 
 long lastsignalTime;  
 
-  
-
-   
-
-  
-
 int Speed;  
-
-  
-
-   
 
 int carState = 0;          // Tracks the current state: 0 = stopped, 1 = forward, -1 = backward 
 
@@ -71,273 +33,77 @@ int carSpeed = 80;         // Initial speed of the car (range: 0 to 255)
 
 const int speedStep = 10;  // Increment for speed adjustment 
 
-   
 
-  
+
 
 void forward(int Speed) {  // makes rbt go forward  
 
-  
-
-   
-
-  
-
   digitalWrite(ain1, 1);  
-
-  
-
-   
-
-  
 
   digitalWrite(bin1, 1);  
 
-  
-
-   
-
-  
-
   analogWrite(pwma, Speed);  
-
-  
-
-   
-
-  
 
   analogWrite(pwmb, Speed);  
 
-  
-
-   
-
-  
 
 }  
 
-  
-
-   
-
-  
-
-   
-
-  
-
-   
-
-  
 
 void  reverse(int Speed) {     // makes rbt go backwards  
 
-  
-
-   
-
-  
 
   digitalWrite(ain1, 0);  
 
-  
-
-   
-
-  
-
   digitalWrite(bin1, 0);  
-
-  
-
-   
-
-  
 
   analogWrite(pwma, Speed);  
 
-  
-
-   
-
-  
-
   analogWrite(pwmb, Speed);  
-
-  
-
-   
-
-  
 
 }  
 
-  
 
-   
-
-  
-
-   
-
-  
-
-   
-
-  
 
 void left(int Speed) {    // makes rbt spin left  
 
-  
-
-   
-
-  
 
   digitalWrite(ain1, 1);  
 
-  
-
-   
-
-  
-
   digitalWrite(bin1, 0);  
-
-  
-
-   
-
-  
 
   analogWrite(pwma, Speed);  
 
-  
-
-   
-
-  
-
   analogWrite(pwmb, Speed);  
 
-  
-
-   
-
-  
 
 }  
 
-  
-
-   
-
-  
-
-   
-
-  
-
-   
-
-  
 
 void right(int Speed) {     // makes rbt spin right  
 
-  
-
-   
-
-  
 
   digitalWrite(ain1, 0);  
 
-  
-
-   
-
-  
-
   digitalWrite(bin1, 1);  
-
-  
-
-   
-
-  
 
   analogWrite(pwma, Speed);  
 
-  
-
-   
-
-  
-
   analogWrite(pwmb, Speed);  
 
-  
-
-   
-
-  
-
 }  
-
-  
-
-   
-
-  
-
-   
-
-  
-
-   
 
   
 
 void forwardleft(int Speed) {   // makes rbt turn left  
 
-  
-
-   
-
-  
-
   digitalWrite(ain1, 1);  
-
-  
-
-   
-
-  
 
   digitalWrite(bin1, 1);  
 
-  
-
-   
-
-  
-
   analogWrite(pwma, Speed);  
 
-  
-
-   
-
-  
-
   analogWrite(pwmb, Speed);  
-
-  
-
-   
-
-  
 
 }  
 
