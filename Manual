@@ -1,0 +1,206 @@
+
+const int pwma = 5;   // keywords  
+
+const int pwmb = 6; 
+
+const int ain1 = 7; 
+
+const int bin1 = 8; 
+
+const int stb = 3; 
+
+  
+
+  
+
+void Forward(int Speed) {  // makes rbt go forward 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  Reverse(int Speed) {     // makes rbt go backwards 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void Left(int Speed) {    // makes rbt spin left 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void Right(int Speed) {     // makes rbt spin right 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void forwardleft(int Speed) {   // makes rbt turn left  
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void forwardright(int Speed) {   // makes rbt turn right 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  reverseleft(int Speed) {    // makes rbt turn left in reverse 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void  reverseright(int Speed) {   // makes rbt turn right in reverse 
+
+digitalWrite(ain1,0); 
+
+digitalWrite(bin1,0); 
+
+analogWrite(pwma,Speed); 
+
+analogWrite(pwmb,Speed); 
+
+} 
+
+  
+
+void Stop() {        // stops rbt in place 
+
+digitalWrite(ain1,1); 
+
+digitalWrite(bin1,1); 
+
+analogWrite(pwma,0); 
+
+analogWrite(pwmb,0); 
+
+} 
+
+  
+
+void victorylap() {      // makes the rbt do a lap around an object 
+
+Forward(225); 
+
+delay(4000); 
+
+Stop(); 
+
+delay(1250); 
+
+Right(150); 
+
+delay(400); 
+
+Stop(); 
+
+delay(1250); 
+
+Forward(255); 
+
+delay(1750); 
+
+Stop(); 
+
+delay(1250); 
+
+Right(150); 
+
+delay(400); 
+
+Stop(); 
+
+delay(1250); 
+
+} 
+
+  
+
+void setup() { 
+
+  // put your setup code here, to run once: 
+
+pinMode(stb, OUTPUT); 
+
+pinMode(pwma, OUTPUT); 
+
+pinMode(ain1, OUTPUT); 
+
+pinMode(pwmb, OUTPUT); 
+
+pinMode(bin1, OUTPUT); 
+
+digitalWrite(stb, 1); 
+
+} 
+
+  
+
+void loop() { 
+
+  // put your main code here, to run repeatedly: 
+
+victorylap(); 
+
+} 
