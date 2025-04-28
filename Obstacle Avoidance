@@ -5,7 +5,6 @@
 
 #include <Servo.h> 
 
-#include <IRremote.hpp>  
 
 const int IR_RECEIVE_PIN = 9; // Define the pin connected to the IR receiver   
 
@@ -329,7 +328,7 @@ void avoidObstacle() {
 
   // Once the robot starts moving forward again, reset the servo to 90 degrees (straight ahead) 
 
-  ultrasonicServo.write(90); 
+  ultrasonicServo.write(74); 
 
 } 
 
