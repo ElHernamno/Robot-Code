@@ -1,0 +1,83 @@
+#include "pitches.h"
+
+// Define buzzer pins
+int buzzerPins[] = {13, 12, 11, 10, 5, 3, 2};
+
+// Define the extended melody for Chopsticks
+int melody[] = {
+  // First part
+  NOTE_C4, NOTE_C4, NOTE_G4, NOTE_G4, // "Chopsticks" (first part)
+  NOTE_A4, NOTE_A4, NOTE_G4,
+  NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4,
+  NOTE_D4, NOTE_D4, NOTE_C4,
+  
+  // Second part - continuation of Chopsticks melody
+  NOTE_E4, NOTE_E4, NOTE_F4, NOTE_F4, 
+  NOTE_G4, NOTE_G4, NOTE_A4, NOTE_A4, 
+  NOTE_B4, NOTE_B4, NOTE_C5, NOTE_C5,
+  
+  // Third part - repeat and end with a nice resolution
+  NOTE_C5, NOTE_B4, NOTE_A4, NOTE_G4, 
+  NOTE_F4, NOTE_E4, NOTE_D4, NOTE_C4
+};
+
+int durations[] = {
+  4, 4, 4, 4,
+  4, 4, 4,
+  4, 4, 4, 4,
+  4, 4, 4,
+  
+  4, 4, 4, 4, 
+  4, 4, 4, 4, 
+  4, 4, 4, 4,
+  
+  4, 4, 4, 4,
+  4, 4, 4, 4
+};
+
+void setup() {
+  // Set all buzzer pins as outputs
+  for (int i = 0; i < 7; i++) {
+    pinMode(buzzerPins[i], OUTPUT);
+  }
+}
+
+void loop() {
+  int size = sizeof(melody) / sizeof(int);
+
+  for (int note = 0; note < size; note++) {
+    int duration = 1000 / durations[note];
+
+    // Pick the correct buzzer for the note
+    int buzzerIndex = mapNoteToBuzzer(melody[note]);
+
+    if (buzzerIndex != -1) {
+      tone(buzzerPins[buzzerIndex], melody[note], duration);
+    }
+
+    int pauseBetweenNotes = duration * 1.30;
+    delay(pauseBetweenNotes);
+
+    if (buzzerIndex != -1) {
+      noTone(buzzerPins[buzzerIndex]);
+    }
+  }
+
+  // After playing once, stop
+  while (true);
+}
+
+// Helper function: maps NOTE_X to correct buzzer index
+int mapNoteToBuzzer(int note) {
+  switch (note) {
+    case NOTE_C4: return 0; // do -> buzzer on pin 13
+    case NOTE_D4: return 1; // re -> buzzer on pin 12
+    case NOTE_E4: return 2; // mi -> buzzer on pin 2
+    case NOTE_F4: return 3; // fa -> buzzer on pin 5
+    case NOTE_G4: return 4; // so -> buzzer on pin 10
+    case NOTE_A4: return 5; // la -> buzzer on pin 3
+    case NOTE_B4: return 6; // ti -> buzzer on pin 11
+    case NOTE_C5: return 7; // high do -> buzzer on pin 13 (again, pin 13 can be reused)
+    default: return -1;     // not mapped
+  }
+}
