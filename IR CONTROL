@@ -7,7 +7,7 @@
 
 
 
-#include <IRremote.hpp>  
+#include <IRremote.hpp>  // install ir remote library by sheriff
 
   
 
@@ -23,7 +23,7 @@ const int pwma = 5;   // keywords
 
 const int pwmb = 6;  
 
-  
+const int pin11 = 11;
 
 const int ain1 = 7;  
 
@@ -290,7 +290,7 @@ void loop() {
 
   // Check if a signal is received  
 
-  
+  digitalWrite(11, LOW);
 
   if (IrReceiver.decode()) {  
 
