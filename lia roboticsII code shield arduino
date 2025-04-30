@@ -9,14 +9,14 @@ const int bin1 = 8;
 const int stb = 3;
 
 const int sensright = A0;
-const int sensmid = A1; // Changed
-const int sensleft = A2; // Changed
+const int sensmid = A1;
+const int sensleft = A2;
 
 const int trigPin = 13;
 const int echoPin = 12;
 
-const int trigPin2 = A1;  // Second ultrasonic TRIG (changed to A1)
-const int echoPin2 = A2;  // Second ultrasonic ECHO (changed to A2)
+const int trigPin2 = A1;
+const int echoPin2 = A2;
 
 const int signalPin = 11;
 
@@ -50,7 +50,7 @@ bool detectWave() {
     unsigned long now = millis();
     if (now - lastDetectTime < waveWindow) {
       waveCount++;
-      if (waveCount >= 5) {  // 5 waves to set pin 11 high
+      if (waveCount >= 5) {  // 5 waves needed again
         waveCount = 0;
         return true;
       }
@@ -121,22 +121,14 @@ void avoidObstacle() {
   } else {
     Stop();
     ultrasonicServo.write(90);
-    delay(1500);  // Let second sensor stabilize
+    // Removed delay(1500) to keep second sensor sensing always
 
     // Check if second ultrasonic sensor detects something
     long sideDistance = readDistanceCM();
     if (sideDistance < obstacleThreshold) {
-      digitalWrite(signalPin, HIGH); // Set pin 11 to high
-    } else {
-      digitalWrite(signalPin, LOW);  // Set pin 11 to low
-    }
-
-    if (detectWave()) {
       digitalWrite(signalPin, HIGH);
-      delay(1000); // Pin 11 stays high for 1 second
+    } else {
       digitalWrite(signalPin, LOW);
-      delay(10000);  // Wait 10 seconds before resuming
-      return;
     }
 
     ultrasonicServo.write(180);
@@ -178,11 +170,11 @@ void setup() {
   pinMode(bin1, OUTPUT);
   digitalWrite(stb, 1);
 
-  pinMode(trigPin, OUTPUT);  // Trig Pin for primary sensor
-  pinMode(echoPin, INPUT);   // Echo Pin for primary sensor
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
 
-  pinMode(trigPin2, OUTPUT); // Trig Pin for second sensor (A1)
-  pinMode(echoPin2, INPUT);  // Echo Pin for second sensor (A2)
+  pinMode(trigPin2, OUTPUT);
+  pinMode(echoPin2, INPUT);
 
   pinMode(signalPin, OUTPUT);
   digitalWrite(signalPin, LOW);
@@ -194,6 +186,13 @@ void setup() {
 
 // --- Main Loop ---
 void loop() {
+  // Independent wave detection handling
+  if (detectWave()) {
+    digitalWrite(signalPin, HIGH);
+    delay(1000); // Keep pin 11 HIGH for 1 second
+    digitalWrite(signalPin, LOW);
+  }
+
   avoidObstacle();
   delay(100);
 }
