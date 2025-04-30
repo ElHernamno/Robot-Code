@@ -1,0 +1,118 @@
+#include "pitches.h"
+
+// Define buzzer pins
+int buzzerPins[] = {13, 12, 11, 10, 5, 3, 2};
+
+// Define the extended melody for Chopsticks
+int melody[] = {
+  NOTE_C4, NOTE_C4, NOTE_G4, NOTE_G4,
+  NOTE_A4, NOTE_A4, NOTE_G4,
+  NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4,
+  NOTE_D4, NOTE_D4, NOTE_C4,
+
+  NOTE_E4, NOTE_E4, NOTE_F4, NOTE_F4,
+  NOTE_G4, NOTE_G4, NOTE_A4, NOTE_A4,
+  NOTE_B4, NOTE_B4, NOTE_C5, NOTE_C5,
+
+  NOTE_C5, NOTE_B4, NOTE_A4, NOTE_G4,
+  NOTE_F4, NOTE_E4, NOTE_D4, NOTE_C4
+};
+
+int durations[] = {
+  4, 4, 4, 4,
+  4, 4, 4,
+  4, 4, 4, 4,
+  4, 4, 4,
+
+  4, 4, 4, 4,
+  4, 4, 4, 4,
+  4, 4, 4, 4,
+
+  4, 4, 4, 4,
+  4, 4, 4, 4
+};
+
+#define TRIG_PIN A0   // Trigger pin (A0) used as digital
+#define ECHO_PIN A1   // Echo pin (A1) used as digital
+
+long duration;
+int distance;
+
+void setup() {
+  // Start serial communication
+  Serial.begin(9600);
+
+  // Set the trigger pin as output
+  pinMode(TRIG_PIN, OUTPUT);
+  // Set the echo pin as input
+  pinMode(ECHO_PIN, INPUT);
+
+  // Set all buzzer pins as outputs
+  for (int i = 0; i < 7; i++) {
+    pinMode(buzzerPins[i], OUTPUT);
+  }
+}
+
+void loop() {
+  // Clear the Trigger pin to ensure no noise
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  
+  // Send a 10-microsecond pulse to trigger the sensor
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  
+  // Measure the time it takes for the echo to return
+  duration = pulseIn(ECHO_PIN, HIGH);
+  
+  // Calculate the distance in centimeters
+  distance = duration * 0.0344 / 2;
+  
+  // Print the distance to the Serial Monitor
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // If the distance is less than a threshold, play the song
+  if (distance < 10) {  // You can set any threshold, here it plays when distance < 10 cm
+    playSong();
+  }
+
+  delay(500); // Wait for half a second before taking another reading
+}
+
+// Function to play the song once
+void playSong() {
+  int size = sizeof(melody) / sizeof(int);
+
+  for (int note = 0; note < size; note++) {
+    int duration = 1000 / durations[note];
+    int buzzerIndex = mapNoteToBuzzer(melody[note]);
+
+    if (buzzerIndex != -1) {
+      tone(buzzerPins[buzzerIndex], melody[note], duration);
+    }
+
+    delay(duration * 1.3);
+
+    if (buzzerIndex != -1) {
+      noTone(buzzerPins[buzzerIndex]);
+    }
+  }
+}
+
+// Helper function: maps NOTE_X to correct buzzer index
+int mapNoteToBuzzer(int note) {
+  switch (note) {
+    case NOTE_C4: return 0; // pin 13
+    case NOTE_D4: return 1; // pin 12
+    case NOTE_E4: return 2; // pin 2
+    case NOTE_F4: return 3; // pin 5
+    case NOTE_G4: return 4; // pin 10
+    case NOTE_A4: return 5; // pin 3
+    case NOTE_B4: return 6; // pin 11
+    case NOTE_C5: return 0; // reuse pin 13
+    default: return -1;
+  }
+}
