@@ -1,0 +1,199 @@
+#include <Servo.h>
+
+const int IR_RECEIVE_PIN = 9;
+
+const int pwma = 5;
+const int pwmb = 6;
+const int ain1 = 7;
+const int bin1 = 8;
+const int stb = 3;
+
+const int sensright = A0;
+const int sensmid = A1; // Changed
+const int sensleft = A2; // Changed
+
+const int trigPin = 13;
+const int echoPin = 12;
+
+const int trigPin2 = A1;  // Second ultrasonic TRIG (changed to A1)
+const int echoPin2 = A2;  // Second ultrasonic ECHO (changed to A2)
+
+const int signalPin = 11;
+
+const int servo = 10;
+Servo ultrasonicServo;
+
+const int obstacleThreshold = 25;
+const int waveThreshold = 20; // cm
+const unsigned long waveWindow = 800; // ms
+
+unsigned long lastDetectTime = 0;
+int waveCount = 0;
+
+// --- Wave Detection Logic ---
+long readDistanceCM() {
+  digitalWrite(trigPin2, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin2, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin2, LOW);
+
+  long duration = pulseIn(echoPin2, HIGH);
+  return duration * 0.034 / 2;
+}
+
+bool detectWave() {
+  static long lastDistance = 0;
+  long currentDistance = readDistanceCM();
+
+  if (abs(currentDistance - lastDistance) > waveThreshold) {
+    unsigned long now = millis();
+    if (now - lastDetectTime < waveWindow) {
+      waveCount++;
+      if (waveCount >= 5) {  // 5 waves to set pin 11 high
+        waveCount = 0;
+        return true;
+      }
+    } else {
+      waveCount = 1;
+    }
+    lastDetectTime = now;
+  }
+
+  lastDistance = currentDistance;
+  return false;
+}
+
+// --- Movement Functions ---
+void forward(int Speed) {
+  digitalWrite(ain1, 1);
+  digitalWrite(bin1, 1);
+  analogWrite(pwma, Speed * 0.85);
+  analogWrite(pwmb, Speed);
+}
+
+void reverse(int Speed) {
+  digitalWrite(ain1, 0);
+  digitalWrite(bin1, 0);
+  analogWrite(pwma, Speed);
+  analogWrite(pwmb, Speed);
+}
+
+void left(int Speed) {
+  digitalWrite(ain1, 1);
+  digitalWrite(bin1, 0);
+  analogWrite(pwma, Speed);
+  analogWrite(pwmb, Speed);
+}
+
+void right(int Speed) {
+  digitalWrite(ain1, 0);
+  digitalWrite(bin1, 1);
+  analogWrite(pwma, Speed);
+  analogWrite(pwmb, Speed);
+}
+
+void Stop() {
+  digitalWrite(ain1, 1);
+  digitalWrite(bin1, 1);
+  analogWrite(pwma, 0);
+  analogWrite(pwmb, 0);
+}
+
+// --- Primary Ultrasonic Distance ---
+long getDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+  return (duration / 2) / 29.1;
+}
+
+// --- Main Obstacle Avoidance ---
+void avoidObstacle() {
+  long frontDistance = getDistance();
+
+  if (frontDistance > obstacleThreshold) {
+    forward(90);
+  } else {
+    Stop();
+    ultrasonicServo.write(90);
+    delay(1500);  // Let second sensor stabilize
+
+    // Check if second ultrasonic sensor detects something
+    long sideDistance = readDistanceCM();
+    if (sideDistance < obstacleThreshold) {
+      digitalWrite(signalPin, HIGH); // Set pin 11 to high
+    } else {
+      digitalWrite(signalPin, LOW);  // Set pin 11 to low
+    }
+
+    if (detectWave()) {
+      digitalWrite(signalPin, HIGH);
+      delay(1000); // Pin 11 stays high for 1 second
+      digitalWrite(signalPin, LOW);
+      delay(10000);  // Wait 10 seconds before resuming
+      return;
+    }
+
+    ultrasonicServo.write(180);
+    delay(500);
+    sideDistance = getDistance();
+
+    if (sideDistance > obstacleThreshold) {
+      left(65);
+      delay(1000);
+      forward(90);
+    } else {
+      ultrasonicServo.write(0);
+      delay(500);
+      sideDistance = getDistance();
+
+      if (sideDistance > obstacleThreshold) {
+        right(65);
+        delay(1000);
+        forward(50);
+      } else {
+        reverse(85);
+        delay(1000);
+        left(117);
+        delay(1000);
+        forward(90);
+      }
+    }
+  }
+
+  ultrasonicServo.write(74);
+}
+
+// --- Setup ---
+void setup() {
+  pinMode(stb, OUTPUT);
+  pinMode(pwma, OUTPUT);
+  pinMode(ain1, OUTPUT);
+  pinMode(pwmb, OUTPUT);
+  pinMode(bin1, OUTPUT);
+  digitalWrite(stb, 1);
+
+  pinMode(trigPin, OUTPUT);  // Trig Pin for primary sensor
+  pinMode(echoPin, INPUT);   // Echo Pin for primary sensor
+
+  pinMode(trigPin2, OUTPUT); // Trig Pin for second sensor (A1)
+  pinMode(echoPin2, INPUT);  // Echo Pin for second sensor (A2)
+
+  pinMode(signalPin, OUTPUT);
+  digitalWrite(signalPin, LOW);
+
+  ultrasonicServo.attach(servo);
+  ultrasonicServo.write(90);
+  delay(500);
+}
+
+// --- Main Loop ---
+void loop() {
+  avoidObstacle();
+  delay(100);
+}
