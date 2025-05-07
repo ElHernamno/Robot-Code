@@ -1,0 +1,226 @@
+#include <Servo.h> //this code detects waves, but counts any motion as waves. also, it is always detecting shit
+
+const int IR_RECEIVE_PIN = 9;
+
+const int pwma = 5;
+const int pwmb = 6;
+const int ain1 = 7;
+const int bin1 = 8;
+const int stb = 3;
+
+const int sensright = A0;
+const int sensmid = A1;
+const int sensleft = A2;
+
+const int trigPin = 13;
+const int echoPin = 12;
+
+const int trigPin2 = A1;
+const int echoPin2 = A2;
+
+const int signalPin = 11;
+
+const int servo = 10;
+Servo ultrasonicServo;
+
+const int obstacleThreshold = 25;
+
+// --- Wave Detection Configuration ---
+const int waveThreshold = 20; // cm difference to count a wave
+const unsigned long waveWindow = 800; // ms between valid wave changes
+const int requiredWaves = 5;
+const int maxWaveDistanceCM = 76; // 2.5 feet
+const unsigned long cooldownTime = 5000; // 5 seconds cooldown
+
+// --- Wave Detection State ---
+unsigned long lastDetectTime = 0;
+unsigned long cooldownStart = 0;
+bool inCooldown = false;
+int waveCount = 0;
+long lastDistance = 0;
+
+// --- Read from second ultrasonic sensor (wave detection) ---
+long readDistanceCM() {
+  digitalWrite(trigPin2, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin2, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin2, LOW);
+
+  long duration = pulseIn(echoPin2, HIGH, 30000); // timeout 30ms
+  if (duration == 0) return -1; // no response
+  return duration * 0.034 / 2;
+}
+
+// --- Detect Wave Movement ---
+bool detectWave() {
+  if (inCooldown) {
+    if (millis() - cooldownStart >= cooldownTime) {
+      inCooldown = false;
+      Serial.println("Cooldown ended.");
+    } else {
+      return false;
+    }
+  }
+
+  long currentDistance = readDistanceCM();
+  if (currentDistance > 0 && currentDistance <= maxWaveDistanceCM) {
+    if (abs(currentDistance - lastDistance) > waveThreshold) {
+      unsigned long now = millis();
+      if (now - lastDetectTime < waveWindow) {
+        waveCount++;
+        Serial.print("Wave Count: ");
+        Serial.println(waveCount);
+
+        if (waveCount >= requiredWaves) {
+          waveCount = 0;
+          inCooldown = true;
+          cooldownStart = millis();
+          return true;
+        }
+      } else {
+        waveCount = 1;
+      }
+      lastDetectTime = now;
+    }
+  } else {
+    waveCount = 0; // reset if too far or invalid
+  }
+
+  lastDistance = currentDistance;
+  return false;
+}
+
+// --- Movement Functions ---
+void forward(int Speed) {
+  digitalWrite(ain1, 1);
+  digitalWrite(bin1, 1);
+  analogWrite(pwma, Speed * 0.85);
+  analogWrite(pwmb, Speed);
+}
+
+void reverse(int Speed) {
+  digitalWrite(ain1, 0);
+  digitalWrite(bin1, 0);
+  analogWrite(pwma, Speed);
+  analogWrite(pwmb, Speed);
+}
+
+void left(int Speed) {
+  digitalWrite(ain1, 1);
+  digitalWrite(bin1, 0);
+  analogWrite(pwma, Speed);
+  analogWrite(pwmb, Speed);
+}
+
+void right(int Speed) {
+  digitalWrite(ain1, 0);
+  digitalWrite(bin1, 1);
+  analogWrite(pwma, Speed);
+  analogWrite(pwmb, Speed);
+}
+
+void Stop() {
+  digitalWrite(ain1, 1);
+  digitalWrite(bin1, 1);
+  analogWrite(pwma, 0);
+  analogWrite(pwmb, 0);
+}
+
+// --- Primary Ultrasonic Distance (Obstacle Detection) ---
+long getDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+  return (duration / 2) / 29.1;
+}
+
+// --- Obstacle Avoidance Logic ---
+void avoidObstacle() {
+  long frontDistance = getDistance();
+
+  if (frontDistance > obstacleThreshold) {
+    forward(90);
+  } else {
+    Stop();
+    ultrasonicServo.write(90);
+
+    long sideDistance = readDistanceCM();
+    if (sideDistance < obstacleThreshold) {
+      digitalWrite(signalPin, HIGH);
+    } else {
+      digitalWrite(signalPin, LOW);
+    }
+
+    ultrasonicServo.write(180);
+    delay(500);
+    sideDistance = getDistance();
+
+    if (sideDistance > obstacleThreshold) {
+      left(65);
+      delay(1000);
+      forward(90);
+    } else {
+      ultrasonicServo.write(0);
+      delay(500);
+      sideDistance = getDistance();
+
+      if (sideDistance > obstacleThreshold) {
+        right(65);
+        delay(1000);
+        forward(50);
+      } else {
+        reverse(85);
+        delay(1000);
+        left(117);
+        delay(1000);
+        forward(90);
+      }
+    }
+  }
+
+  ultrasonicServo.write(74);
+}
+
+// --- Setup ---
+void setup() {
+  pinMode(stb, OUTPUT);
+  pinMode(pwma, OUTPUT);
+  pinMode(ain1, OUTPUT);
+  pinMode(pwmb, OUTPUT);
+  pinMode(bin1, OUTPUT);
+  digitalWrite(stb, 1);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  pinMode(trigPin2, OUTPUT);
+  pinMode(echoPin2, INPUT);
+
+  pinMode(signalPin, OUTPUT);
+  digitalWrite(signalPin, LOW);
+
+  ultrasonicServo.attach(servo);
+  ultrasonicServo.write(90);
+  delay(500);
+
+  Serial.begin(9600);
+}
+
+// --- Main Loop ---
+void loop() {
+  if (detectWave()) {
+    digitalWrite(signalPin, HIGH);
+    Serial.println("Wave Triggered! Pin 11 HIGH");
+    delay(1000);
+    digitalWrite(signalPin, LOW);
+    Serial.println("Pin 11 LOW - Cooldown started");
+  }
+
+  avoidObstacle();
+  delay(100);
+}
