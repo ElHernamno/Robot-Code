@@ -1,9 +1,9 @@
-#include "pitches.h"
+#include "pitches.h" // Includes note frequency definitions (NOTE_C4, NOTE_D4, etc.)
 
-// Define buzzer pins
-int buzzerPins[] = {13, 12, 11, 10, 5, 3, 2};
+// Define pins connected to buzzers
+int buzzerPins[] = {13, 12, 11, 10, 5, 3, 2}; // 7 buzzers for 7 different notes
 
-// Define the extended melody for Chopsticks
+// Define the melody for "Chopsticks" using musical note constants
 int melody[] = {
   NOTE_C4, NOTE_C4, NOTE_G4, NOTE_G4,
   NOTE_A4, NOTE_A4, NOTE_G4,
@@ -18,6 +18,7 @@ int melody[] = {
   NOTE_F4, NOTE_E4, NOTE_D4, NOTE_C4
 };
 
+// Corresponding note durations (in 1/x seconds; e.g., 4 = quarter note)
 int durations[] = {
   4, 4, 4, 4,
   4, 4, 4,
@@ -32,20 +33,18 @@ int durations[] = {
   4, 4, 4, 4
 };
 
-#define TRIG_PIN A0   // Trigger pin (A0) used as digital
-#define ECHO_PIN A1   // Echo pin (A1) used as digital
+// Define ultrasonic sensor pins (used as digital I/O)
+#define TRIG_PIN A0   // Trigger pin for ultrasonic sensor
+#define ECHO_PIN A1   // Echo pin for ultrasonic sensor
 
-long duration;
-int distance;
+long duration; // Time taken by ultrasonic pulse to return
+int distance;  // Calculated distance in cm
 
 void setup() {
-  // Start serial communication
-  Serial.begin(9600);
+  Serial.begin(9600); // Start serial communication for debugging
 
-  // Set the trigger pin as output
-  pinMode(TRIG_PIN, OUTPUT);
-  // Set the echo pin as input
-  pinMode(ECHO_PIN, INPUT);
+  pinMode(TRIG_PIN, OUTPUT); // Set trigger pin as output
+  pinMode(ECHO_PIN, INPUT);  // Set echo pin as input
 
   // Set all buzzer pins as outputs
   for (int i = 0; i < 7; i++) {
@@ -54,55 +53,58 @@ void setup() {
 }
 
 void loop() {
-  // Clear the Trigger pin to ensure no noise
+  // Clear the trigger pin to ensure no false signal
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
-  
-  // Send a 10-microsecond pulse to trigger the sensor
+
+  // Trigger the ultrasonic pulse (10 microsecond HIGH)
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
-  
-  // Measure the time it takes for the echo to return
+
+  // Read the time it takes for the echo to be received
   duration = pulseIn(ECHO_PIN, HIGH);
-  
-  // Calculate the distance in centimeters
+
+  // Convert duration to distance in centimeters
   distance = duration * 0.0344 / 2;
-  
+
   // Print the distance to the Serial Monitor
   Serial.print("Distance: ");
   Serial.print(distance);
   Serial.println(" cm");
 
-  // If the distance is less than a threshold, play the song
-  if (distance < 10) {  // You can set any threshold, here it plays when distance < 10 cm
+  // If object is detected within 10 cm, play the melody
+  if (distance < 10) {
     playSong();
   }
 
-  delay(500); // Wait for half a second before taking another reading
+  delay(500); // Wait before next reading
 }
 
-// Function to play the song once
+// Plays the melody one time
 void playSong() {
-  int size = sizeof(melody) / sizeof(int);
+  int size = sizeof(melody) / sizeof(int); // Number of notes in the melody
 
   for (int note = 0; note < size; note++) {
-    int duration = 1000 / durations[note];
+    int duration = 1000 / durations[note]; // Convert note type to time in ms
+
+    // Find the buzzer associated with the current note
     int buzzerIndex = mapNoteToBuzzer(melody[note]);
 
     if (buzzerIndex != -1) {
+      // Play the note on the corresponding buzzer pin
       tone(buzzerPins[buzzerIndex], melody[note], duration);
     }
 
-    delay(duration * 1.3);
+    delay(duration * 1.3); // Wait for the note to finish (with slight pause)
 
     if (buzzerIndex != -1) {
-      noTone(buzzerPins[buzzerIndex]);
+      noTone(buzzerPins[buzzerIndex]); // Stop the tone
     }
   }
 }
 
-// Helper function: maps NOTE_X to correct buzzer index
+// Maps each musical note to a buzzer pin index
 int mapNoteToBuzzer(int note) {
   switch (note) {
     case NOTE_C4: return 0; // pin 13
@@ -112,7 +114,7 @@ int mapNoteToBuzzer(int note) {
     case NOTE_G4: return 4; // pin 10
     case NOTE_A4: return 5; // pin 3
     case NOTE_B4: return 6; // pin 11
-    case NOTE_C5: return 0; // reuse pin 13
-    default: return -1;
+    case NOTE_C5: return 0; // reuse pin 13 for higher C
+    default: return -1;    // If the note is not mapped
   }
 }
