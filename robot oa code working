@@ -1,45 +1,46 @@
-#include <Servo.h> //this code detects waves, but counts any motion as waves. also, it is always detecting shit
+#include <Servo.h> // Include Servo library for controlling the servo motor
 
-const int IR_RECEIVE_PIN = 9;
+// --- Pin Definitions ---
+const int IR_RECEIVE_PIN = 9; // (Unused in current code)
 
-const int pwma = 5;
-const int pwmb = 6;
-const int ain1 = 7;
-const int bin1 = 8;
-const int stb = 3;
+const int pwma = 5;   // PWM control for motor A
+const int pwmb = 6;   // PWM control for motor B
+const int ain1 = 7;   // Direction control for motor A
+const int bin1 = 8;   // Direction control for motor B
+const int stb = 3;    // Motor driver standby control
 
-const int sensright = A0;
-const int sensmid = A1;
-const int sensleft = A2;
+const int sensright = A0; // (Unused analog sensor input)
+const int sensmid = A1;   // Also reused as trigPin2
+const int sensleft = A2;  // Also reused as echoPin2
 
-const int trigPin = 13;
-const int echoPin = 12;
+const int trigPin = 13;   // Trigger pin for main ultrasonic sensor (front)
+const int echoPin = 12;   // Echo pin for main ultrasonic sensor (front)
 
-const int trigPin2 = A1;
-const int echoPin2 = A2;
+const int trigPin2 = A1;  // Trigger pin for wave-detecting ultrasonic sensor
+const int echoPin2 = A2;  // Echo pin for wave-detecting ultrasonic sensor
 
-const int signalPin = 11;
+const int signalPin = 11; // Output pin for signaling (e.g., music)
 
-const int servo = 10;
-Servo ultrasonicServo;
+const int servo = 10;     // Servo pin for rotating ultrasonic sensor
+Servo ultrasonicServo;    // Servo object
 
-const int obstacleThreshold = 25;
+const int obstacleThreshold = 25; // Distance threshold (cm) for obstacle detection
 
 // --- Wave Detection Configuration ---
-const int waveThreshold = 20; // cm difference to count a wave
-const unsigned long waveWindow = 800; // ms between valid wave changes
-const int requiredWaves = 5;
-const int maxWaveDistanceCM = 76; // 2.5 feet
-const unsigned long cooldownTime = 5000; // 5 seconds cooldown
+const int waveThreshold = 20;          // Minimum distance change to register a wave (cm)
+const unsigned long waveWindow = 800;  // Time window to group waves (ms)
+const int requiredWaves = 5;           // Number of waves required to trigger action
+const int maxWaveDistanceCM = 76;      // Max valid distance for wave detection (2.5 feet)
+const unsigned long cooldownTime = 5000; // Cooldown after wave trigger (ms)
 
-// --- Wave Detection State ---
-unsigned long lastDetectTime = 0;
-unsigned long cooldownStart = 0;
-bool inCooldown = false;
-int waveCount = 0;
-long lastDistance = 0;
+// --- Wave Detection State Variables ---
+unsigned long lastDetectTime = 0;  // Timestamp of last wave
+unsigned long cooldownStart = 0;   // Timestamp when cooldown started
+bool inCooldown = false;           // Flag to track cooldown state
+int waveCount = 0;                 // Current wave count
+long lastDistance = 0;             // Last measured distance
 
-// --- Read from second ultrasonic sensor (wave detection) ---
+// --- Read Distance from Wave-Detecting Ultrasonic Sensor ---
 long readDistanceCM() {
   digitalWrite(trigPin2, LOW);
   delayMicroseconds(2);
@@ -47,24 +48,28 @@ long readDistanceCM() {
   delayMicroseconds(10);
   digitalWrite(trigPin2, LOW);
 
-  long duration = pulseIn(echoPin2, HIGH, 30000); // timeout 30ms
-  if (duration == 0) return -1; // no response
-  return duration * 0.034 / 2;
+  long duration = pulseIn(echoPin2, HIGH, 30000); // 30ms timeout
+  if (duration == 0) return -1; // No echo received
+  return duration * 0.034 / 2;  // Convert to distance in cm
 }
 
-// --- Detect Wave Movement ---
+// --- Detect Hand Wave Gesture ---
 bool detectWave() {
   if (inCooldown) {
+    // Exit cooldown if time has passed
     if (millis() - cooldownStart >= cooldownTime) {
       inCooldown = false;
       Serial.println("Cooldown ended.");
     } else {
-      return false;
+      return false; // Ignore during cooldown
     }
   }
 
-  long currentDistance = readDistanceCM();
+  long currentDistance = readDistanceCM(); // Get distance from hand sensor
+
+  // Check if object is within range
   if (currentDistance > 0 && currentDistance <= maxWaveDistanceCM) {
+    // Check if movement exceeds threshold
     if (abs(currentDistance - lastDistance) > waveThreshold) {
       unsigned long now = millis();
       if (now - lastDetectTime < waveWindow) {
@@ -76,22 +81,22 @@ bool detectWave() {
           waveCount = 0;
           inCooldown = true;
           cooldownStart = millis();
-          return true;
+          return true; // Trigger signal
         }
       } else {
-        waveCount = 1;
+        waveCount = 1; // Start new wave count
       }
       lastDetectTime = now;
     }
   } else {
-    waveCount = 0; // reset if too far or invalid
+    waveCount = 0; // Reset if out of range
   }
 
   lastDistance = currentDistance;
   return false;
 }
 
-// --- Movement Functions ---
+// --- Motor Movement Functions ---
 void forward(int Speed) {
   digitalWrite(ain1, 1);
   digitalWrite(bin1, 1);
@@ -127,7 +132,7 @@ void Stop() {
   analogWrite(pwmb, 0);
 }
 
-// --- Primary Ultrasonic Distance (Obstacle Detection) ---
+// --- Get Distance from Front Ultrasonic Sensor ---
 long getDistance() {
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
@@ -136,7 +141,7 @@ long getDistance() {
   digitalWrite(trigPin, LOW);
 
   long duration = pulseIn(echoPin, HIGH);
-  return (duration / 2) / 29.1;
+  return (duration / 2) / 29.1; // Convert to cm
 }
 
 // --- Obstacle Avoidance Logic ---
@@ -144,36 +149,39 @@ void avoidObstacle() {
   long frontDistance = getDistance();
 
   if (frontDistance > obstacleThreshold) {
+    // Clear path ahead
     forward(90);
   } else {
+    // Obstacle detected - stop and assess
     Stop();
-    ultrasonicServo.write(90);
+    ultrasonicServo.write(90); // Face forward
 
-    long sideDistance = readDistanceCM();
+    long sideDistance = readDistanceCM(); // Check for hand wave
     if (sideDistance < obstacleThreshold) {
-      digitalWrite(signalPin, HIGH);
+      digitalWrite(signalPin, HIGH); // Hand too close
     } else {
       digitalWrite(signalPin, LOW);
     }
 
+    // Check right side
     ultrasonicServo.write(180);
     delay(500);
     sideDistance = getDistance();
-
     if (sideDistance > obstacleThreshold) {
       left(65);
       delay(1000);
       forward(90);
     } else {
+      // Check left side
       ultrasonicServo.write(0);
       delay(500);
       sideDistance = getDistance();
-
       if (sideDistance > obstacleThreshold) {
         right(65);
         delay(1000);
         forward(50);
       } else {
+        // Backup and turn if both sides blocked
         reverse(85);
         delay(1000);
         left(117);
@@ -183,44 +191,51 @@ void avoidObstacle() {
     }
   }
 
-  ultrasonicServo.write(74);
+  ultrasonicServo.write(74); // Reset servo position
 }
 
-// --- Setup ---
+// --- Arduino Setup ---
 void setup() {
+  // Initialize motor pins
   pinMode(stb, OUTPUT);
   pinMode(pwma, OUTPUT);
   pinMode(ain1, OUTPUT);
   pinMode(pwmb, OUTPUT);
   pinMode(bin1, OUTPUT);
-  digitalWrite(stb, 1);
+  digitalWrite(stb, 1); // Enable motors
 
+  // Setup ultrasonic sensors
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
-
   pinMode(trigPin2, OUTPUT);
   pinMode(echoPin2, INPUT);
 
+  // Setup signal pin
   pinMode(signalPin, OUTPUT);
   digitalWrite(signalPin, LOW);
 
+  // Attach and initialize servo
   ultrasonicServo.attach(servo);
   ultrasonicServo.write(90);
   delay(500);
 
+  // Begin serial communication
   Serial.begin(9600);
 }
 
 // --- Main Loop ---
 void loop() {
+  // Check for valid wave sequence
   if (detectWave()) {
-    digitalWrite(signalPin, HIGH);
+    digitalWrite(signalPin, HIGH); // Trigger signal (e.g., play music)
     Serial.println("Wave Triggered! Pin 11 HIGH");
-    delay(1000);
+    delay(1000);                   // Keep signal on briefly
     digitalWrite(signalPin, LOW);
     Serial.println("Pin 11 LOW - Cooldown started");
   }
 
+  // Perform obstacle avoidance
   avoidObstacle();
-  delay(100);
+
+  delay(100); // Short delay for loop pacing
 }
